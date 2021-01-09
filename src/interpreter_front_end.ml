@@ -52,10 +52,7 @@ let rec interpret (program : _ t) =
       r := Expression.value v;
       interpret (k ())
     | For { start; end_; f; } ->
-      interpret (
-        let%bind () = loop_bits ~start ~end_ f in
-        k ()
-      )
+      interpret (loop_bits ~start ~end_ f >>= k)
     | _ -> raise_s [%message "Incomplete implementation, this should not have happened!"]
     end
 ;;
