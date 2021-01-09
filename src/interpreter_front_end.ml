@@ -56,7 +56,6 @@ let rec interpret (program : _ t) =
         let%bind () = loop_bits ~start ~end_ f in
         k ()
       )
-    | _ -> raise_s [%message "Implementation incomplete!"]
+    | _ -> raise_s [%message "Incomplete implementation, this should not have happened!"]
     end
-
 ;;
