@@ -1,116 +1,62 @@
 open Core_kernel
+open Hardcaml
 
-module Expression = Hardcaml.Bits
+module Expression = struct
+  open Bits
 
-module rec Program : sig
+  type t =
+    | Value of Bits.t
+    | Reference of Bits.t ref
 
-  type 'a t =
-    | Return : 'a                                        -> 'a t
-    | Then   : (('a, 'a t) Instruction.t * ('a -> 'b t)) -> 'b t
+  let value = function
+    | Value a -> a
+    | Reference r -> !r
 
-  include Monad.S with type 'a t := 'a t
+  let zero width = Value (Bits.zero width)
+  let one width = Value (Bits.one width)
+  let of_int ~width value = Value (Bits.of_int ~width value)
 
-end = struct
+  let (+:) a b = Value ((value a) +: (value b))
+  let (+:.) a b = Value ((value a) +:. b)
+  let (-:) a b = Value ((value a) -: (value b))
 
-  module T = struct
-    type 'a t =
-      | Return : 'a                                        -> 'a t
-      | Then   : (('a, 'a t) Instruction.t * ('a -> 'b t)) -> 'b t
-
-    let return a = Return a
-
-    let rec bind t ~f =
-      match t with
-      | Return a -> f a
-      | Then (instr, k) ->
-        Then (instr, (fun a -> bind ~f (k a)))
-    ;;
-
-    let map = `Define_using_bind
-  end
-
-  include T
-  include Monad.Make(T)
-
-end 
-and Ref : sig
-
-  type t = Expression.t ref
-
-  val create : Expression.t -> t Program.t
-  val get    : t -> Expression.t Program.t
-  val set    : t -> Expression.t -> unit Program.t
-
-end = struct
-  open Program
-
-  type t = Expression.t ref
-
-  let create initial = Then ((Instruction.New_ref initial), return)
-
-  let get r = Then ((Instruction.Get_ref r), return)
-
-  let set r v = Then ((Instruction.Set_ref (r, v)), return)
-end
-and Instruction : sig
-
-  type for_ =
-    { start  : Expression.t
-    ; end_   : Expression.t
-    ; f      : Expression.t -> unit Program.t
-    }
-
-  type ('a, 'b) t =
-    | New_ref : Expression.t           -> (Ref.t, 'b) t
-    | Get_ref : Ref.t                  -> (Expression.t, 'b) t
-    | Set_ref : (Ref.t * Expression.t) -> (unit, 'b) t
-    | For     : for_ -> (unit, unit Program.t) t
-
-end = struct
-
-  type for_ =
-    { start  : Expression.t
-    ; end_   : Expression.t
-    ; f      : Expression.t -> unit Program.t
-    }
-
-  type ('a, 'b) t =
-    | New_ref : Expression.t           -> (Ref.t, 'b) t
-    | Get_ref : Ref.t                  -> (Expression.t, 'b) t
-    | Set_ref : (Ref.t * Expression.t) -> (unit, 'b) t
-    | For     : for_ -> (unit, unit Program.t) t
+  let is_vdd a = Bits.is_vdd (value a)
+  let (>:) a b = Value (value a >: value b)
 end
 
-let for_ start end_ f =
-  Program.Then (
-    For { start; end_; f; },
-    Program.return
-  )
-;;
+include Front_end.Make(Expression)
+include Loop ()
+include Ref (struct
+    type t = Bits.t ref
+  end)
+
+open Let_syntax
 
 let rec loop_bits ~start ~end_ f =
   if Expression.(is_vdd ((>:) start end_ )) then
-    Program.return ()
+    return ()
   else
-    let%bind.Program () = f start in
+    let%bind () = f start in
     loop_bits ~start:(Expression.(+:.) start 1) ~end_ f
 ;;
 
-let rec interpret (program : _ Program.t) =
+let rec interpret (program : _ t) =
   match program with
   | Return a -> a
   | Then (ins, k) ->
     begin match ins with
-    | New_ref expression -> interpret (k (ref expression))
-    | Get_ref r -> interpret (k r.contents)
+    | New_ref expression ->
+      interpret (k (ref (Expression.value expression)))
+    | Get_ref r -> interpret (k (Expression.Reference r))
     | Set_ref (r, v) ->
-      r := v;
+      r := Expression.value v;
       interpret (k ())
     | For { start; end_; f; } ->
       interpret (
-        let%bind.Program () = loop_bits ~start ~end_ f in
+        let%bind () = loop_bits ~start ~end_ f in
         k ()
       )
+    | _ -> raise_s [%message "Implementation incomplete!"]
     end
 
 ;;

@@ -1,15 +1,18 @@
-module F := Front_end
+open Core_kernel
+open Hardcaml
 
-module Expression = Hardcaml.Bits
+module Expression : sig
+  type t =
+    | Value     of Bits.t
+    | Reference of Bits.t ref
 
-module Instruction : F.Instruction
-module Program : F.Program with module Instruction := Instruction
+  val value : t -> Bits.t
 
-module Ref : F.Ref
-  with type expression := Expression.t
-   and type 'a program := 'a Program.t
-   and type 'a container := 'a
+  include Front_end.Expression with type t := t
+end
 
-include F.Loop with type expression := Expression.t and type 'a program := 'a Program.t
+include module type of Front_end.Make(Expression)
+include Loop
+include Ref with type variable = Bits.t ref
 
-val interpret : 'a Program.t -> 'a
+val interpret : 'a t -> 'a

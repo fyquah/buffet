@@ -1,18 +1,6 @@
 open Core_kernel
 
-module type Instruction = sig
-  type ('a, 'b) t
-end
-
-module type Program = sig
-  module Instruction : Instruction
-
-  type 'a t =
-    | Return : 'a                                        -> 'a t
-    | Then   : (('a, 'a t) Instruction.t * ('a -> 'b t)) -> 'b t
-
-  include Monad.S with type 'a t := 'a t
-end
+module type Variable = T
 
 module type Expression = sig
   type t
@@ -25,38 +13,83 @@ module type Expression = sig
   val (-:) : t -> t -> t
 end
 
-module type Ref = sig
-  type expression
-  type 'a program
-  type 'a container
-
-  type t
-
-  val create : expression -> t container program
-  val get    : t -> expression container program
-  val set    : t -> expression container         -> unit program
-end
-
 module type Loop = sig
-  type expression
-  type 'a program
+  type expr
+  type 'a t
 
-  val for_ : expression -> expression -> (expression -> unit program) -> unit program
+  val for_ : expr -> expr -> (expr -> unit t) -> unit t
+  val while_ : expr -> unit t -> unit t
 end
 
-module type Automatic_storage = sig
-  module Program : Program
-  module Expression : Expression
+module type Ref = sig
+  type variable
+  type expr
+  type 'a t
 
-  module Ref : Ref
-    with type expression := Expression.t
-     and type 'a program := 'a Program.t
-     and type 'a container := 'a
-
-  (*
-  module Ref : Ref with type 'a container := 'a
-
-  module Make_ref(Container : Hardcaml.Interface.S) :
-    Ref with type 'a container := 'a Container.t
-     *)
+  val new_ref : expr -> variable t
+  val get_ref : variable -> expr t
+  val set_ref : variable -> expr -> unit t
 end
+
+module Make(Expression : Expression) = struct
+
+  type expr = Expression.t
+
+  type 'a instruction = ..
+
+  module T = struct
+    type 'a t =
+      | Return : 'a                                      -> 'a t
+      | Then   : ('a instruction * ('a -> 'b t)) -> 'b t
+
+    let return x = Return x
+
+    let rec bind t ~f =
+      match t with
+      | Return a -> f a
+      | Then (instr, k) ->
+        Then (instr, (fun a -> bind (k a) ~f))
+
+    let map = `Define_using_bind
+  end
+
+  include T
+  include Monad.Make(T)
+
+  module type Loop = Loop with type expr := expr and type 'a t := 'a t
+  module type Ref = Ref with type expr := expr and type 'a t := 'a t
+
+  module Loop() = struct
+    type for_ =
+      { start  : Expression.t
+      ; end_   : Expression.t
+      ; f      : Expression.t -> unit t
+      }
+
+    type while_ =
+      { cond :  expr
+      ; f    : unit t
+      }
+
+    type 'a instruction +=
+      | For     : for_   -> unit instruction
+      | While   : while_ -> unit instruction
+
+    let for_ start end_ f = Then (For { start; end_; f }, return)
+    let while_ cond f = Then (While { cond; f }, return)
+  end
+
+  module Ref(Variable : Variable) = struct
+    type variable = Variable.t
+
+    type 'a instruction +=
+      | New_ref : Expression.t                -> Variable.t   instruction
+      | Get_ref : Variable.t                  -> Expression.t instruction
+      | Set_ref : (Variable.t * Expression.t) -> unit         instruction
+
+    let new_ref expr       = Then (New_ref expr, return)
+    let get_ref var        = Then (Get_ref var, return)
+    let set_ref var expr   = Then (Set_ref (var, expr), return)
+  end
+end
+
