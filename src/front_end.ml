@@ -31,6 +31,19 @@ module type Ref = sig
   val set_ref : variable -> expr -> unit t
 end
 
+module type Scheduling = sig
+  type 'a t
+
+  val in_a_cycle : 'a t -> 'a t
+end
+
+module type Conditional = sig
+  type expr
+  type 'a t
+
+  val if_ : expr -> 'a t -> 'a t -> 'a t
+end
+
 module Make(Expression : Expression) = struct
 
   type expr = Expression.t
@@ -39,7 +52,7 @@ module Make(Expression : Expression) = struct
 
   module T = struct
     type 'a t =
-      | Return : 'a                                      -> 'a t
+      | Return : 'a                              -> 'a t
       | Then   : ('a instruction * ('a -> 'b t)) -> 'b t
 
     let return x = Return x
@@ -57,7 +70,9 @@ module Make(Expression : Expression) = struct
   include Monad.Make(T)
 
   module type Loop = Loop with type expr := expr and type 'a t := 'a t
-  module type Ref = Ref with type expr := expr and type 'a t := 'a t
+  module type Ref  = Ref with type expr := expr and type 'a t := 'a t
+  module type Scheduling = Scheduling with type 'a t := 'a t
+  module type Conditional = Conditional with type expr := expr and type 'a t := 'a t
 
   module Loop() = struct
     type for_ =
@@ -90,5 +105,25 @@ module Make(Expression : Expression) = struct
     let new_ref expr       = Then (New_ref expr, return)
     let get_ref var        = Then (Get_ref var, return)
     let set_ref var expr   = Then (Set_ref (var, expr), return)
+  end
+
+  module Scheduling() = struct
+    type 'a instruction += 
+      | In_a_cycle : 'a t -> 'a instruction
+
+    let in_a_cycle prog = Then (In_a_cycle prog, return)
+  end
+
+  module Conditional() = struct
+    type 'a if_ =
+        { cond  : expr
+        ; then_ : 'a t
+        ; else_ : 'a t
+        }
+
+    type 'a instruction += 
+      | If : 'a if_ -> 'a instruction
+
+    let if_ cond then_ else_ = Then (If { cond; then_; else_ }, return)
   end
 end
