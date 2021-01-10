@@ -5,7 +5,9 @@ module Expression = Hls_front_end.Expression
 module E = Expression
 module Var_id = Hls_front_end.Var_id
 
-module State_id = Identifier.Make()
+module State_id = Identifier.Make(struct
+    let name = "state_id"
+  end)
 
 module State = struct
   type assignments = (Var_id.t * Expression.t) list
@@ -33,32 +35,6 @@ module State = struct
 
   let leaf ?(assignments = []) leaf =
     { assignments; children = Leaf leaf }
-  ;;
-end
-
-module Env = struct
-  type t =
-    { transient_expression_values : Expression.t Map.M(Var_id).t
-    ; variables                   : Set.M(Var_id).t
-    }
-
-  let set_transient_expression t var_id value =
-    let transient_expression_values =
-      Map.set t.transient_expression_values ~key:var_id ~data:value
-    in
-    { t with transient_expression_values }
-  ;;
-
-  let add_variable t var_id value =
-    assert (not (Set.mem t.variables var_id));
-    set_transient_expression
-      { t with variables = Set.add t.variables var_id }
-      var_id
-      value
-  ;;
-
-  let new_cycle t =
-    { t with transient_expression_values = Map.empty (module Var_id) }
   ;;
 end
 
@@ -182,7 +158,6 @@ let rec compile (ast : unit Ast.t) =
   | _ -> assert false
 
 and compile_for (for_ : Ast.for_) =
-  let initial_state_id = State_id.create () in
   let index = for_.index in
   let end_ = Var_id.create (E.width for_.end_) in
   let loop_body_graph =

@@ -11,33 +11,44 @@ module State_id : sig
 end
 
 module State : sig
-  type assignments = Expression.t Map.M(Var_id).t
+  type assignments = (Var_id.t * Expression.t) list
 
   type transitions =
+    { assignments : assignments
+    ; children    : children
+    }
+
+  and children =
     | Tree of
-        { assignments : assignments
-        ; children    : (Expression.t, transitions) List.Assoc.t
+        { cases : (Expression.t * transitions) list
+        ; default : transitions
         }
-    | Leaf of
-        { assignments : assignments
-        ; next_state  : State_id.t
-        }
+    | Leaf of leaf
+
+  and leaf =
+    | Done
+    | State of State_id.t
 
   type t =
     { id          : State_id.t
-    ; assignments : assignments
     ; transitions : transitions
     }
 end
 
+module Cfg : sig
+  type t =
+    { initial_state : State_id.t
+    ; states : State.t Map.M(State_id).t
+    }
+
+  val initial_state : t -> State.t
+end
 
 (** A CFG-style representation of a state machine. *)
 type t =
-  { initial_state : State.t
-  ; states        : State.t Map.M(State_id).t
-  ; variables     : Set.M(Var_id).t
+  { preemptive_assignments : (Var_id.t * Expression.t) list
+  ; variables : Set.M(Var_id).t
+  ; cfg : Cfg.t
   }
 
-val compile_expression
-   : Expression.t Ast.t
-  -> t
+val compile : unit Ast.t -> t
