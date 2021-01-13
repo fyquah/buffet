@@ -5,7 +5,8 @@ module Expression = Hls_front_end.Expression
 module Var_id = Hls_front_end.Var_id
 
 module State_id : sig
-  include Comparable.S
+  include Sexpable
+  include Comparable.S with type t := t
 
   val to_string : t -> string
 end
@@ -42,6 +43,11 @@ module Cfg : sig
     }
 
   val initial_state : t -> State.t
+
+
+  (** Guranteses to return the initial state as the first element of the
+   * list. *)
+  val all_states : t -> State_id.t list
 end
 
 (** A CFG-style representation of a state machine. *)

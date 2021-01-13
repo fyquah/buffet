@@ -1,9 +1,9 @@
 open Core_kernel
 open Hardcaml
-open Ocaml_edsl
+open Ocaml_edsl_kernel
 
 module type Api = sig
-  open Front_end
+  open Instructions
 
   module Expression : Expression
 
@@ -31,8 +31,10 @@ module Make(Api : Api) = struct
 end
 
 let%expect_test "test arithmetic" =
-  let open Interpreter_front_end in
+  let open Ocaml_edsl_interpreter in
   let open Make(Interpreter_front_end) in
-  Stdio.printf "%d" (Bits.to_int (Expression.value (Interpreter_front_end.interpret main)));
+  Stdio.printf "%d"
+    (Bits.to_int (Interpreter_front_end.Expression.value
+                    (Interpreter_front_end.interpret main)));
   [%expect {| 36 |}]
 ;;

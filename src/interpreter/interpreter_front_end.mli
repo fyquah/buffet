@@ -1,4 +1,5 @@
 open Core_kernel
+open Ocaml_edsl_kernel
 open Hardcaml
 
 module Expression : sig
@@ -8,10 +9,10 @@ module Expression : sig
 
   val value : t -> Bits.t
 
-  include Front_end.Expression with type t := t
+  include Instructions.Expression with type t := t
 end
 
-include module type of Front_end.Make(Expression)
+include module type of Instructions.Make(Expression)
 include Loop
 include Ref with type variable = Bits.t ref
 

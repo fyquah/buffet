@@ -1,6 +1,11 @@
 (library
  (name ocaml_edsl_test)
- (libraries core_kernel ocaml_edsl)
+ (libraries
+    core_kernel
+    ocaml_edsl_kernel
+    ocaml_edsl_interpreter
+    ocaml_edsl_hls
+    )
  (inline_tests)
  (preprocess (pps ppx_jane ppx_deriving_hardcaml))
   )

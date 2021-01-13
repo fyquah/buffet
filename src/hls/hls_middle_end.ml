@@ -36,6 +36,18 @@ module State = struct
   let leaf ?(assignments = []) leaf =
     { assignments; children = Leaf leaf }
   ;;
+
+  let iter_children ~f (t : t) =
+    let rec loop (transitions : transitions) =
+      match transitions.children with
+      | Leaf Done -> ()
+      | Leaf (State child_state) -> f child_state
+      | Tree { cases; default = _ } ->
+        List.iter cases ~f:(fun (_expr, transitions) -> loop transitions)
+    in
+    loop t.transitions
+
+  ;;
 end
 
 module Cfg = struct
@@ -43,6 +55,26 @@ module Cfg = struct
     { initial_state : State_id.t
     ; states : State.t Map.M(State_id).t
     }
+
+  let dfs (t : t) ~f =
+    let visited = ref (State_id.Set.singleton t.initial_state) in
+    let rec loop state_id =
+      f state_id;
+      State.iter_children (Map.find_exn t.states state_id) ~f:(fun child ->
+          if not (Set.mem !visited child) then (
+            visited := Set.add !visited child;
+            loop child
+          )
+        );
+    in
+    loop t.initial_state
+  ;;
+
+  let all_states (t : t) =
+    let states = ref [] in
+    dfs t ~f:(fun s -> states := s :: !states);
+    List.rev !states
+  ;;
 
   let initial_state (t : t) = Map.find_exn t.states t.initial_state
 

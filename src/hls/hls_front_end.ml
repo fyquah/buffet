@@ -1,4 +1,5 @@
 open Core_kernel
+open Ocaml_edsl_kernel
 
 module Var_id : sig
   include Comparable.S
@@ -138,7 +139,7 @@ module Ast = struct
   ;;
 end
 
-include Front_end.Make(Expression)
+include Instructions.Make(Expression)
 include Loop ()
 include Ref (struct
     type t = Var_id.t

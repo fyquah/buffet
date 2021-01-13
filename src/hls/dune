@@ -1,10 +1,10 @@
 (library
- (name ocaml_edsl)
+ (name ocaml_edsl_hls)
  (libraries
   core_kernel
 
   hardcaml
-  higher_kinded)
+  ocaml_edsl_kernel)
 
   (preprocess (pps ppx_jane ppx_deriving_hardcaml))
 

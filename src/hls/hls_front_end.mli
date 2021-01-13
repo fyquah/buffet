@@ -1,4 +1,5 @@
 open Core_kernel
+open Ocaml_edsl_kernel
 
 module Var_id : sig
   include Comparable.S
@@ -9,7 +10,10 @@ module Var_id : sig
 end
 
 module Expression : sig
-  type t
+  type t =
+    | Var_value of Var_id.t
+    | Reference of t
+    | Expression of t Symbolic_expression.t
 
   val reference : t -> t
 
@@ -23,7 +27,7 @@ module Expression : sig
 
   val (>:) : t -> t -> t
 
-  include Front_end.Expression with type t := t
+  include Instructions.Expression with type t := t
 end
 
 module Ast : sig
@@ -61,7 +65,7 @@ module Ast : sig
   val seq : unit t list -> 'a t -> 'a t
 end
 
-include module type of Front_end.Make(Expression)
+include module type of Instructions.Make(Expression)
 include Loop
 include Ref with type variable = Var_id.t
 

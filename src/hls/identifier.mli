@@ -3,7 +3,7 @@ open Core_kernel
 module Make(M : sig
     val name : string
   end) : sig
-  type t
+  type t [@@deriving sexp]
 
   include Comparable.S with type t := t
 

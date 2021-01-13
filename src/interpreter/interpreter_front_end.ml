@@ -1,4 +1,5 @@
 open Core_kernel
+open Ocaml_edsl_kernel
 open Hardcaml
 
 module Expression = struct
@@ -24,7 +25,7 @@ module Expression = struct
   let (>:) a b = Value (value a >: value b)
 end
 
-include Front_end.Make(Expression)
+include Instructions.Make(Expression)
 include Loop ()
 include Ref (struct
     type t = Bits.t ref
