@@ -31,13 +31,15 @@ include Ref (struct
     type t = Bits.t ref
   end)
 
+let get_ref r = Expression.Reference r ;;
+
 open Let_syntax
 
 let rec loop_bits ~start ~end_ f =
   if Expression.(is_vdd ((>:) start end_ )) then
     return ()
   else
-    let%bind () = f start in
+    let* () = f start in
     loop_bits ~start:(Expression.(+:.) start 1) ~end_ f
 ;;
 
@@ -48,7 +50,6 @@ let rec interpret (program : _ t) =
     begin match ins with
     | New_ref expression ->
       interpret (k (ref (Expression.value expression)))
-    | Get_ref r -> interpret (k (Expression.Reference r))
     | Set_ref (r, v) ->
       r := Expression.value v;
       interpret (k ())

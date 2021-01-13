@@ -145,6 +145,8 @@ include Ref (struct
     type t = Var_id.t
   end)
 
+let get_ref (var_id : Var_id.t) = Expression.var_value var_id
+
 let rec compile_to_ast : 'a. 'a t -> 'a Ast.t =
   fun program ->
   match program with
@@ -158,9 +160,6 @@ let rec compile_to_ast : 'a. 'a t -> 'a Ast.t =
           ; initial_value
           ; body = compile_to_ast (cont var_id)
           }
-
-      | Get_ref var_id ->
-        compile_to_ast (cont (Expression.var_value var_id))
 
       | Set_ref (var_id, expr) ->
         Seq (Assign_var (var_id, expr), compile_to_ast (cont ()))

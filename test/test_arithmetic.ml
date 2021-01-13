@@ -7,8 +7,7 @@ module type Api = sig
 
   module Expression : Expression
 
-  include Monad.S
-
+  include Base
   include Loop with type expr := Expression.t and type 'a t := 'a t
   include Ref  with type expr := Expression.t and type 'a t := 'a t
 end
@@ -20,13 +19,12 @@ module Make(Api : Api) = struct
   module E = Api.Expression
 
   let main =
-    let%bind var = new_ref (Expression.zero 8) in
-    let%bind () =
+    let* var = new_ref (Expression.zero 8) in
+    let* () =
       Api.for_ (E.of_int ~width:8 0)  (E.of_int ~width:8 8) (fun i ->
-          let%bind x = get_ref var in
-          set_ref var Expression.(x +: i))
+          set_ref var Expression.(get_ref var +: i))
     in
-    get_ref var
+    return (get_ref var)
   ;;
 end
 
