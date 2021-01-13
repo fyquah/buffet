@@ -1,5 +1,6 @@
 open Core_kernel
 open Hardcaml
+open Ocaml_edsl_kernel
 
 module Middle_end = Hls_middle_end
 module State_id = Middle_end.State_id
@@ -34,6 +35,7 @@ module Env = struct
         | Constant bits  -> Signal.of_constant (Bits.to_constant bits)
         | Comparator cmp -> resolve_cmp t cmp
         | Operation  op2 -> resolve_op2 t op2
+        | _ -> assert false
       end
 
   and resolve_cmp (t : t) (cmp : _ SE.comparator) =
@@ -50,6 +52,7 @@ module Env = struct
     match op2 with
     | Add (a, b) -> r a +: r b
     | Sub (a, b) -> r a -: r b
+    | _ -> assert false
   ;;
 end
 
