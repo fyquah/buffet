@@ -1,6 +1,6 @@
 open Hardcaml
 
-module Recipe_back_end = Ocaml_edsl_recipe.Recipe_back_end
+module Recipe_back_end = Ocaml_edsl_back_ends.Recipe_back_end
 
 type t = Cyclesim.t_port_list
 

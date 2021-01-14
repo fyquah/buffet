@@ -24,7 +24,7 @@ module Make(Api : Api) = struct
 end
 
 let%expect_test "test arithmetic" =
-  let open Ocaml_edsl_recipe in
+  let open Ocaml_edsl_back_ends in
   let open Make(Step_back_end) in
   Stdio.printf "%d"
     (Bits.to_int (Step_back_end.Expression.evaluate

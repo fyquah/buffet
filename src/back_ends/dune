@@ -1,5 +1,5 @@
 (library
- (name ocaml_edsl_recipe)
+ (name ocaml_edsl_back_ends)
  (libraries
   core_kernel
 

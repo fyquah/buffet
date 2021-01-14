@@ -1,6 +1,7 @@
 open Core_kernel
 open Hardcaml
 open Ocaml_edsl_kernel
+open Ocaml_edsl_back_ends
 
 module Recipe_back_end = Utils.Recipe_back_end
 
@@ -32,7 +33,6 @@ module Program(Api : Api) = struct
 end
 
 let%expect_test "test step monad" =
-  let open Ocaml_edsl_recipe in
   let open Program(Step_back_end) in
   let result = Step_back_end.run main in
   Stdio.printf "0x%x"
@@ -44,7 +44,6 @@ let%expect_test "test step monad" =
 ;;
 
 let%expect_test "test with recipe circuit" =
-  let open Ocaml_edsl_recipe in
   let open Program(Recipe_back_end) in
   let compiled = Utils.compile main in
   [%expect {|

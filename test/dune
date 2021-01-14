@@ -3,7 +3,7 @@
  (libraries
     core_kernel
     ocaml_edsl_kernel
-    ocaml_edsl_recipe
+    ocaml_edsl_back_ends
     )
  (inline_tests)
  (preprocess (pps ppx_jane ppx_deriving_hardcaml))
