@@ -47,3 +47,55 @@ let width t = t.width
 let one width       = { width; value = Constant (Bits.one width) }
 let zero width      = { width; value = Constant (Bits.zero width) }
 let of_int ~width x = { width; value = Constant (Bits.of_int ~width x) }
+
+let evaluate (type a b) (module Comb : Comb.S with type t = a) (t : b t) ~eval_child =
+  match t.value with
+  | Constant constant ->
+    Comb.of_constant (Hardcaml.Bits.to_constant constant)
+
+  | Operation (Add (lhs, rhs)) ->
+    Comb.(+:) (eval_child lhs) (eval_child rhs)
+
+  | Operation (Sub (lhs, rhs)) ->
+    Comb.(-:) (eval_child lhs) (eval_child rhs)
+
+  | Operation (Mult (lhs, rhs)) ->
+    Comb.( *: ) (eval_child lhs) (eval_child rhs)
+
+  | Operation (And (lhs, rhs)) ->
+    Comb.( &: ) (eval_child lhs) (eval_child rhs)
+
+  | Operation (Or (lhs, rhs)) ->
+    Comb.( |: ) (eval_child lhs) (eval_child rhs)
+
+  | Operation (Xor (lhs, rhs)) ->
+    Comb.( ^: ) (eval_child lhs) (eval_child rhs)
+
+  | Operation (Multu (lhs, rhs)) ->
+    Comb.( *: ) (eval_child lhs) (eval_child rhs)
+
+  | Operation (Mults (lhs, rhs)) ->
+    Comb.( *+ ) (eval_child lhs) (eval_child rhs)
+
+  | Comparator (Lt (lhs, rhs)) ->
+    Comb.( <: ) (eval_child lhs) (eval_child rhs)
+
+  | Comparator (Eq (lhs, rhs)) ->
+    Comb.( ==: ) (eval_child lhs) (eval_child rhs)
+
+  | Comparator (Gt (lhs, rhs)) ->
+    Comb.( >: ) (eval_child lhs) (eval_child rhs)
+
+  | Mux { select; cases } ->
+    let select = eval_child select in
+    let cases = List.map cases ~f:eval_child in
+    Comb.mux select cases
+
+  | Not arg -> Comb.( ~: ) (eval_child arg)
+
+  | Select { lo; hi; arg } ->
+    Comb.select (eval_child arg) hi lo
+
+  | Concat_msb args ->
+    Comb.concat_msb (List.map args ~f:eval_child)
+;;

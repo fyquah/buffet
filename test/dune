@@ -4,6 +4,7 @@
     core_kernel
     ocaml_edsl_kernel
     ocaml_edsl_interpreter
+    ocaml_edsl_recipe
     ocaml_edsl_hls
     )
  (inline_tests)

@@ -1,14 +1,33 @@
 open Core_kernel
 open Hardcaml
 
-module Make(Underlying : Comb.Primitives) = struct
+module type Reference = sig
+  type underlying
+  type t [@@deriving sexp_of, equal]
+
+  val width : t -> int
+end
+
+module type S = sig
+  type reference
+  type underlying
+
+  include Comb.S
+
+  val evaluate : deref:(reference -> t) -> t -> underlying
+end
+
+module Make
+    (Underlying : Comb.S)
+    (Reference : Reference with type underlying := Underlying.t) = struct
 
   module Primitive = struct
     module S = Symbolic_expression
     module U = Underlying
 
     type t =
-      | Underlying of Underlying.t
+      | Reference of Reference.t
+      | Constant of Underlying.t
       | Expression of t Symbolic_expression.t
     [@@deriving equal, sexp_of]
 
@@ -19,7 +38,8 @@ module Make(Underlying : Comb.Primitives) = struct
         }
 
     let width = function
-      | Underlying u -> Underlying.width u
+      | Reference r  -> Reference.width r
+      | Constant u -> Underlying.width u
       | Expression e -> e.width
     ;;
 
@@ -35,8 +55,8 @@ module Make(Underlying : Comb.Primitives) = struct
         }
     ;;
 
-    let ( +: )  = create_cmp2 (fun a b -> (Lt (a, b)))
-    let ( -: )  = create_cmp2 (fun a b -> (Eq (a, b)))
+    let ( +: )  = create_op2 (fun a b -> (Add (a, b)))
+    let ( -: )  = create_op2 (fun a b -> (Sub (a, b)))
 
     let ( &: ) = create_op2 (fun a b -> (And (a, b)))
     let ( |: ) = create_op2 (fun a b -> (Or  (a, b)))
@@ -79,18 +99,33 @@ module Make(Underlying : Comb.Primitives) = struct
     ;;
 
     let is_empty = function
-      | Underlying u -> Underlying.is_empty u
+      | Constant u -> Underlying.is_empty u
+      | Reference _
       | Expression _ -> false
     ;;
 
-    let empty = Underlying U.empty
-    let of_constant c = Underlying (U.of_constant c)
+    let empty = Constant U.empty
+    let of_constant c = Constant (U.of_constant c)
 
     (** TODO: Implement this properly. *)
     let to_string _ = ""
     let to_constant _ = assert false
-    let (--) _ _ = assert false
+    let (--) x _name = x
   end
 
+  include Primitive
   include Comb.Make(Primitive)
+
+  let rec evaluate ~(deref : Reference.t -> Underlying.t) (t : t) =
+    match t with
+    | Constant c -> c
+    | Reference r -> deref r
+    | Expression symbolic_expression ->
+      Symbolic_expression.evaluate
+        (module Underlying)
+        symbolic_expression
+        ~eval_child:(evaluate ~deref)
+  ;;
+
+  let reference r = Reference r
 end

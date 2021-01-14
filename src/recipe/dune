@@ -4,6 +4,7 @@
   core_kernel
 
   hardcaml
+  hardcaml_step_testbench
   ocaml_edsl_kernel)
 
   (preprocess (pps ppx_jane ppx_deriving_hardcaml))

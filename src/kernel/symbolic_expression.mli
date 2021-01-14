@@ -46,3 +46,5 @@ val width : _ t -> int
 val one  : int -> _ t
 val zero : int -> _ t
 val of_int : width: int -> int -> _ t
+
+val evaluate : (module Comb.S with type t = 'a) -> 'b t -> eval_child:('b -> 'a) -> 'a
