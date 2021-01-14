@@ -16,6 +16,7 @@ module Step_monad = Digital_components.Step_monad
 
 include Instructions.Make(Expression)
 include Ref(struct type t = Bits.t ref end)
+include While()
 
 let get_ref r = Expression.reference r
 
@@ -51,7 +52,8 @@ module Executor = struct
     | Some x -> x.result
   ;;
 
-  let rec program_to_step (program : _ t) =
+  let rec program_to_step : 'a . 'a t -> ('a, unit, unit) Step_monad.t =
+    fun program ->
     match program with
     | Return a -> Step_monad.return a
     | Then (ins, k) ->
@@ -68,6 +70,17 @@ module Executor = struct
           in
           var := value;
           program_to_step (k ())
+
+        | While { cond; body } ->
+          let rec loop () =
+            let cond = Expression.evaluate cond in
+            if Bits.is_vdd cond then
+              let%bind.Step_monad () = program_to_step body in
+              loop ()
+            else
+              program_to_step (k ())
+          in
+          loop ()
 
         | _ -> raise_s [%message "Incomplete implementation, this should not have happened!"]
       end

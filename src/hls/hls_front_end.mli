@@ -15,18 +15,6 @@ module Expression : sig
     | Reference of t
     | Expression of t Symbolic_expression.t
 
-  val reference : t -> t
-
-  val var_value : Var_id.t -> t
-
-  val width : t -> int
-
-  val (==:) : t -> t -> t
-
-  val (+:.) : t -> int -> t
-
-  val (>:) : t -> t -> t
-
   include Instructions.Expression with type t := t
 end
 

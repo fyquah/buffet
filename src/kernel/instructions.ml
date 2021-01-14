@@ -13,12 +13,7 @@ end
 module type Expression = sig
   type t
 
-  val zero : int -> t
-  val one  : int -> t
-  val of_int : width: int -> int -> t
-
-  val (+:) : t -> t -> t
-  val (-:) : t -> t -> t
+  include Hardcaml.Comb.S with type t := t
 end
 
 module type Ref = sig
@@ -122,5 +117,17 @@ module Make(Expression : Expression) = struct
       | If : 'a if_ -> 'a instruction
 
     let if_ cond then_ else_ = Then (If { cond; then_; else_ }, return)
+  end
+
+  module While() = struct
+    type while_ =
+      { cond : expr
+      ; body : unit t
+      }
+
+    type 'a instruction += 
+      | While : while_ -> unit instruction
+
+    let while_ cond body = Then (While { cond; body }, return )
   end
 end

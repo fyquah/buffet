@@ -12,6 +12,7 @@ module Expression : sig
 end
 
 include Base
-include Ref with type expr := Expression.t and type 'a t := 'a t
+include Ref   with type expr := Expression.t and type 'a t := 'a t
+include While with type expr := Expression.t and type 'a t := 'a t
 
 val run : 'a t -> 'a
