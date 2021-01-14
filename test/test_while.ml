@@ -13,6 +13,7 @@ module type Api = sig
   include Ref   with type expr := Expression.t and type 'a t := 'a t
   include While with type expr := Expression.t and type 'a t := 'a t
   include Conditional with type expr := Expression.t and type 'a t := 'a t
+  include Join with                               type 'a t := 'a t
 end
 
 module Program(Api : Api) = struct
@@ -37,19 +38,18 @@ module Program(Api : Api) = struct
 
   let fibonacci n =
     let* n   = new_ref (E.of_int ~width:8 n) in
-    let* tmp = new_ref (E.of_int ~width:32 1) in
     let* f0  = new_ref (E.of_int ~width:32 1) in
     let* f1  = new_ref (E.of_int ~width:32 1) in
-    if_ E.((get_ref n ==:. 0) |: (get_ref n ==:. 1)) (
+    if_ E.((!n ==:. 0) |: (!n ==:. 1)) (
       return (E.of_int ~width:32 1)
     ) @@ (
       let* () =
         while_ E.(!n >:. 2) (
-          (* TODO: Use [par] for this. *)
-          let* () = set_ref tmp   (!f0) in
-          let* () = set_ref f0    (!f1) in
-          let* () = set_ref f1  E.(!tmp +: !f0) in
-          set_ref n E.(get_ref n -:. 1)
+          par [
+            set_ref f0    (!f1)
+          ; set_ref f1    E.(!f0 +: !f1)
+          ; set_ref n     E.(get_ref n -:. 1)
+          ]
         )
       in
       return !f1

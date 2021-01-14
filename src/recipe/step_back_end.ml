@@ -18,6 +18,7 @@ include Instructions.Make(Expression)
 include Ref(struct type t = Bits.t ref end)
 include While()
 include Conditional()
+include Join()
 
 let get_ref r = Expression.reference r
 
@@ -29,17 +30,19 @@ module Executor = struct
     let undefined = ()
   end
 
+  let component_of_step step =
+    Step_monad.create_component
+      ~created_at:[%here]
+      ~start:(fun () ->
+          let%bind.Step_monad result = step in
+          Step_monad.return { Step_monad.Component_finished. output = () ; result }
+        )
+      ~input:(module Empty)
+      ~output:(module Empty)
+  ;;
+
   let execute step =
-    let component, result_event =
-      Step_monad.create_component
-        ~created_at:[%here]
-        ~start:(fun () ->
-            let%bind.Step_monad result = step in
-            Step_monad.return { Step_monad.Component_finished. output = () ; result }
-          )
-        ~input:(module Empty)
-        ~output:(module Empty)
-    in
+    let component, result_event = component_of_step step in
     Component.run_until_finished
       component
       ~first_input:()
@@ -51,6 +54,14 @@ module Executor = struct
     match Step_monad.Event.value result_event with
     | None -> assert false
     | Some x -> x.result
+  ;;
+
+  let rec map_items ~f = function
+    | [] -> Step_monad.return []
+    | hd :: tl ->
+      let%bind.Step_monad hd = f hd in
+      let%bind.Step_monad tl = map_items ~f tl in
+      Step_monad.return (hd :: tl)
   ;;
 
   let rec program_to_step : 'a . 'a t -> ('a, unit, unit) Step_monad.t =
@@ -93,6 +104,32 @@ module Executor = struct
               program_to_step else_
           in
           program_to_step (k ret)
+
+        | Join progs ->
+          let%bind.Step_monad tasks =
+            map_items progs ~f:(fun prog ->
+                Step_monad.spawn [%here]
+                  ~start:(fun () ->
+                      let%bind.Step_monad result = program_to_step prog in
+                      Step_monad.return { Step_monad.Component_finished. output = () ; result }
+                    )
+                  ~input:(module Empty)
+                  ~output:(module Empty)
+                  ~child_input:(fun ~parent:() -> ())
+                  ~include_child_output:(fun ~parent:() ~child:() -> ()))
+          in
+          let%bind.Step_monad results =
+            map_items tasks ~f:(fun task ->
+                let rec loop () =
+                  match Step_monad.Event.value task with
+                  | None -> 
+                    let%bind.Step_monad () = Step_monad.next_step [%here] () in
+                    loop ()
+                  | Some (a : _ Step_monad.Component_finished.t) -> Step_monad.return a.result
+                in
+                loop ())
+          in
+          program_to_step (k results)
 
         | _ -> raise_s [%message "Incomplete implementation, this should not have happened!"]
       end

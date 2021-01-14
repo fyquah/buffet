@@ -26,10 +26,11 @@ module type Ref = sig
   val set_ref : variable -> expr -> unit t
 end
 
-module type Scheduling = sig
+module type Join = sig
   type 'a t
 
-  val in_a_cycle : 'a t -> 'a t
+  val join_ : 'a t list -> 'a list t
+  val par   : unit t list -> unit t
 end
 
 module type Conditional = sig
@@ -75,7 +76,7 @@ module Make(Expression : Expression) = struct
   let (let+) a f = a >>| f
 
   module type Ref  = Ref with type expr := expr and type 'a t := 'a t
-  module type Scheduling = Scheduling with type 'a t := 'a t
+  module type Join = Join with type 'a t := 'a t
   module type Conditional = Conditional with type expr := expr and type 'a t := 'a t
 
   module Ref(Variable : Variable) = struct
@@ -99,11 +100,13 @@ module Make(Expression : Expression) = struct
     let set_ref var expr   = Then (Set_ref (var, expr), return)
   end
 
-  module Scheduling() = struct
+  module Join() = struct
     type 'a instruction += 
-      | In_a_cycle : 'a t -> 'a instruction
+      | Join : 'a t list -> 'a list instruction
 
-    let in_a_cycle prog = Then (In_a_cycle prog, return)
+    let join_ progs = Then (Join progs, return)
+
+    let par  (progs : unit t list) = Then (Join progs, (fun _result -> return ()))
   end
 
   module Conditional() = struct

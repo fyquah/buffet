@@ -15,5 +15,6 @@ include Base
 include Ref         with type expr := Expression.t and type 'a t := 'a t
 include While       with type expr := Expression.t and type 'a t := 'a t
 include Conditional with type expr := Expression.t and type 'a t := 'a t
+include Join        with                               type 'a t := 'a t
 
 val run : 'a t -> 'a
