@@ -12,6 +12,7 @@ module type Api = sig
   include Base
   include Ref   with type expr := Expression.t and type 'a t := 'a t
   include While with type expr := Expression.t and type 'a t := 'a t
+  include Conditional with type expr := Expression.t and type 'a t := 'a t
 end
 
 module Program(Api : Api) = struct
@@ -31,18 +32,52 @@ module Program(Api : Api) = struct
     in
     return (get_ref acc)
   ;;
+
+  let (!) = get_ref
+
+  let fibonacci n =
+    let* n   = new_ref (E.of_int ~width:8 n) in
+    let* tmp = new_ref (E.of_int ~width:32 1) in
+    let* f0  = new_ref (E.of_int ~width:32 1) in
+    let* f1  = new_ref (E.of_int ~width:32 1) in
+    if_ E.((get_ref n ==:. 0) |: (get_ref n ==:. 1)) (
+      return (E.of_int ~width:32 1)
+    ) @@ (
+      let* () =
+        while_ E.(!n >:. 2) (
+          (* TODO: Use [par] for this. *)
+          let* () = set_ref tmp   (!f0) in
+          let* () = set_ref f0    (!f1) in
+          let* () = set_ref f1  E.(!tmp +: !f0) in
+          set_ref n E.(get_ref n -:. 1)
+        )
+      in
+      return !f1
+    )
+  ;;
+
 end
 
 let%expect_test "test step monad" =
   let open Ocaml_edsl_recipe in
   let open Program(Step_back_end) in
-  let factorial n =
-    let result = Step_back_end.run (factorial n) in
+  let test ~f n =
+    let result = Step_back_end.run (f n) in
     Stdio.printf "%d"
       (Bits.to_int (Step_back_end.Expression.evaluate result));
   in
+  let factorial = test ~f:factorial in
+  let fibonacci = test ~f:fibonacci in
   factorial 1;
   [%expect {| 1 |}];
   factorial 6;
-  [%expect {| 720 |}]
+  [%expect {| 720 |}];
+  fibonacci 1;
+  [%expect {| 1 |}];
+  fibonacci 2;
+  [%expect {| 1 |}];
+  fibonacci 3;
+  [%expect {| 2 |}];
+  fibonacci 7;
+  [%expect {| 13 |}];
 ;;

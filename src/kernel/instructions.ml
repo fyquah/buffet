@@ -117,6 +117,7 @@ module Make(Expression : Expression) = struct
       | If : 'a if_ -> 'a instruction
 
     let if_ cond then_ else_ = Then (If { cond; then_; else_ }, return)
+    let when_ cond then_     = Then (If { cond; then_; else_ = return () }, return)
   end
 
   module While() = struct

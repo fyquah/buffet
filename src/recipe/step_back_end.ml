@@ -17,6 +17,7 @@ module Step_monad = Digital_components.Step_monad
 include Instructions.Make(Expression)
 include Ref(struct type t = Bits.t ref end)
 include While()
+include Conditional()
 
 let get_ref r = Expression.reference r
 
@@ -81,6 +82,17 @@ module Executor = struct
               program_to_step (k ())
           in
           loop ()
+
+        | If { cond; then_; else_ } ->
+          let cond = Expression.evaluate cond in
+          assert (Bits.width cond = 1);
+          let%bind.Step_monad ret =
+            if Bits.is_vdd cond then
+              program_to_step then_
+            else
+              program_to_step else_
+          in
+          program_to_step (k ret)
 
         | _ -> raise_s [%message "Incomplete implementation, this should not have happened!"]
       end
