@@ -21,14 +21,6 @@ module type Expression = sig
   val (-:) : t -> t -> t
 end
 
-module type Loop = sig
-  type expr
-  type 'a t
-
-  val for_ : expr -> expr -> (expr -> unit t) -> unit t
-  val while_ : expr -> unit t -> unit t
-end
-
 module type Ref = sig
   type variable
   type expr
@@ -50,6 +42,13 @@ module type Conditional = sig
   type 'a t
 
   val if_ : expr -> 'a t -> 'a t -> 'a t
+end
+
+module type While = sig
+  type expr
+  type 'a t
+
+  val while_ : expr -> unit t -> unit t
 end
 
 module Make(Expression : Expression) = struct
@@ -80,30 +79,9 @@ module Make(Expression : Expression) = struct
   let (let*) a f = a >>= f
   let (let+) a f = a >>| f
 
-  module type Loop = Loop with type expr := expr and type 'a t := 'a t
   module type Ref  = Ref with type expr := expr and type 'a t := 'a t
   module type Scheduling = Scheduling with type 'a t := 'a t
   module type Conditional = Conditional with type expr := expr and type 'a t := 'a t
-
-  module Loop() = struct
-    type for_ =
-      { start  : Expression.t
-      ; end_   : Expression.t
-      ; f      : Expression.t -> unit t
-      }
-
-    type while_ =
-      { cond :  expr
-      ; f    : unit t
-      }
-
-    type 'a instruction +=
-      | For     : for_   -> unit instruction
-      | While   : while_ -> unit instruction
-
-    let for_ start end_ f = Then (For { start; end_; f }, return)
-    let while_ cond f = Then (While { cond; f }, return)
-  end
 
   module Ref(Variable : Variable) = struct
     type variable = Variable.t

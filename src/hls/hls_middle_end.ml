@@ -33,7 +33,7 @@ module State = struct
     ; transitions : transitions
     }
 
-  let leaf ?(assignments = []) leaf =
+  let _leaf ?(assignments = []) leaf =
     { assignments; children = Leaf leaf }
   ;;
 
@@ -117,7 +117,7 @@ module Cfg = struct
     { t with states }
   ;;
 
-  let rewrite_done (t : t) ~f =
+  let _rewrite_done (t : t) ~f =
     rewrite_state_leaves t ~f:(fun assignments leaf ->
         match leaf with
         | State _ -> { assignments; children = Leaf leaf }
@@ -179,8 +179,6 @@ let rec compile (ast : unit Ast.t) =
     ; cfg = t.cfg
     }
 
-  | For for_ -> compile_for for_
-
   | Assign_var (var_id, expr) ->
     { preemptive_assignments = []
     ; variables = Var_id.Set.singleton var_id
@@ -188,63 +186,4 @@ let rec compile (ast : unit Ast.t) =
     }
 
   | _ -> assert false
-
-and compile_for (for_ : Ast.for_) =
-  let index = for_.index in
-  let end_ = Var_id.create (E.width for_.end_) in
-  let loop_body_graph =
-    let t_body = compile for_.for_body in
-    let cfg =
-      Cfg.rewrite_done t_body.cfg ~f:(fun assignments ->
-          { assignments
-          ; children =
-              State.Tree
-                { cases =
-                    [ E.(var_value index ==: var_value end_),
-                      { assignments = []
-                      ; children = Leaf Done
-                      }
-                    ]
-                ; default =
-                    { assignments =
-                        [ index, E.((var_value index) +:. 1) ]
-                    ; children = Leaf (State t_body.cfg.initial_state)
-                    }
-                }
-          })
-    in
-    { t_body with cfg }
-  in
-  let loop_entrance_state =
-    { State.
-      id = State_id.create ()
-    ; transitions =
-        { assignments = [ (end_, for_.end_); (index, for_.start) ]
-        ; children =
-            Tree
-              { cases =
-                  [ E.(>:) for_.start for_.end_,
-                    { assignments = loop_body_graph.preemptive_assignments
-                    ; children = Leaf Done
-                    }
-                  ]
-              ; default = State.leaf (State loop_body_graph.cfg.initial_state)
-              }
-        }
-    }
-  in
-  { preemptive_assignments = []
-  ; cfg =
-      { Cfg.initial_state = loop_entrance_state.id
-      ; states =
-          Map.add_exn loop_body_graph.cfg.states
-            ~key:loop_entrance_state.id
-            ~data:loop_entrance_state
-      }
-  ; variables =
-      Set.union
-        loop_body_graph.variables
-        (Var_id.Set.of_list [ end_; index ]) 
-  }
 ;;
-

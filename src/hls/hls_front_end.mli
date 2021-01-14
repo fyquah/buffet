@@ -36,7 +36,6 @@ module Ast : sig
   type 'a t =
     | Seq        of (unit t * 'a t)
     | With_var   of 'a with_var
-    | For        of for_
     | If         of 'a if_
     | Assign_var of (Var_id.t * Expression.t)
     | Return     of 'a
@@ -66,7 +65,6 @@ module Ast : sig
 end
 
 include module type of Instructions.Make(Expression)
-include Loop
 include Ref with type variable = Var_id.t
 
 val compile_to_ast : 'a t -> 'a Ast.t

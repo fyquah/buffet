@@ -101,7 +101,6 @@ module Ast = struct
   type 'a t =
     | Seq        of (unit t * 'a t)
     | With_var   of 'a with_var
-    | For        of for_
     | If         of 'a if_
     | Assign_var of (Var_id.t * Expression.t)
     | Return     of 'a
@@ -140,7 +139,6 @@ module Ast = struct
 end
 
 include Instructions.Make(Expression)
-include Loop ()
 include Ref (struct
     type t = Var_id.t
   end)
@@ -163,14 +161,6 @@ let rec compile_to_ast : 'a. 'a t -> 'a Ast.t =
 
       | Set_ref (var_id, expr) ->
         Seq (Assign_var (var_id, expr), compile_to_ast (cont ()))
-
-      | For { start; end_; f; } ->
-        assert (Expression.width start = Expression.width end_);
-        let index = Var_id.create (Expression.width start) in
-        Seq (
-          For { start; end_; for_body = compile_to_ast (f (Expression.var_value index)); index },
-          compile_to_ast (cont ())
-        )
 
       | _ -> raise_s [%message "Incomplete implementation, this should not have happened!"]
     end

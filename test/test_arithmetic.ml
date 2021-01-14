@@ -8,7 +8,6 @@ module type Api = sig
   module Expression : Expression
 
   include Base
-  include Loop with type expr := Expression.t and type 'a t := 'a t
   include Ref  with type expr := Expression.t and type 'a t := 'a t
 end
 
@@ -20,19 +19,15 @@ module Make(Api : Api) = struct
 
   let main =
     let* var = new_ref (Expression.zero 8) in
-    let* () =
-      Api.for_ (E.of_int ~width:8 0)  (E.of_int ~width:8 8) (fun i ->
-          set_ref var Expression.(get_ref var +: i))
-    in
     return (get_ref var)
   ;;
 end
 
 let%expect_test "test arithmetic" =
-  let open Ocaml_edsl_interpreter in
-  let open Make(Interpreter_front_end) in
+  let open Ocaml_edsl_recipe in
+  let open Make(Step_back_end) in
   Stdio.printf "%d"
-    (Bits.to_int (Interpreter_front_end.Expression.value
-                    (Interpreter_front_end.interpret main)));
-  [%expect {| 36 |}]
+    (Bits.to_int (Step_back_end.Expression.evaluate
+                    (Step_back_end.run main )));
+  [%expect {| 0 |}]
 ;;
