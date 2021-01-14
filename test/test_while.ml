@@ -46,11 +46,17 @@ module Program(Api : Api) = struct
     ) @@ (
       let* () =
         while_ E.(!n >:. 2) (
-          par [
-            set_ref f0    (!f1)
-          ; set_ref f1    E.(!f0 +: !f1)
-          ; set_ref n     E.(get_ref n -:. 1)
-          ]
+          let+ () =
+            par [
+              set_ref f0    (!f1)
+            ; set_ref f1    E.(!f0 +: !f1)
+            ; set_ref n     E.(get_ref n -:. 1)
+            ]
+          in
+          Format.printf "n = %a, f0 = %a, f1 = %a\n"
+            Expression.pp (!n)
+            Expression.pp (!f0)
+            Expression.pp (!f1)
         )
       in
       return !f1
@@ -77,7 +83,13 @@ let%expect_test "test step monad" =
   fibonacci 2;
   [%expect {| 1 |}];
   fibonacci 3;
-  [%expect {| 2 |}];
+  [%expect {| 2n = 8'u2, f0 = 32'u1, f1 = 32'u2 |}];
   fibonacci 7;
-  [%expect {| 13 |}];
+  [%expect {|
+    n = 8'u6, f0 = 32'u1, f1 = 32'u2
+    n = 8'u5, f0 = 32'u2, f1 = 32'u3
+    n = 8'u4, f0 = 32'u3, f1 = 32'u5
+    n = 8'u3, f0 = 32'u5, f1 = 32'u8
+    n = 8'u2, f0 = 32'u8, f1 = 32'u13
+    13 |}];
 ;;

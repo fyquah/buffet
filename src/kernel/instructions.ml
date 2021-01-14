@@ -14,6 +14,8 @@ module type Expression = sig
   type t
 
   include Hardcaml.Comb.S with type t := t
+
+  val pp : Format.formatter -> t -> unit
 end
 
 module type Ref = sig

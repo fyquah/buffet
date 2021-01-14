@@ -3,12 +3,15 @@ open Ocaml_edsl_kernel
 open Instructions
 
 module Step_monad := Digital_components.Step_monad
+
 module Expression : sig
   include Dynamic_expression.S
     with type reference := Bits.t ref
      and type underlying := Bits.t
 
   val evaluate : t -> Bits.t
+
+  val pp : Format.formatter -> t -> unit
 end
 
 include Base

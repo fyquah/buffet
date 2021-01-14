@@ -10,6 +10,11 @@ module Expression = struct
   end)
 
   let evaluate t = evaluate ~deref:(!) t
+
+  let pp ppf a =
+    let w = width a in
+    Format.fprintf ppf "%d'u%d" w (Bits.to_int (evaluate a))
+  ;;
 end
 
 module Step_monad = Digital_components.Step_monad
