@@ -68,19 +68,13 @@ module type Join = sig
   val par3  : unit t -> unit t -> unit t -> unit t
 end
 
-(** API for conditionals *)
-module type Conditional = sig
+(** API for basic control flow. *)
+module type Control_flow = sig
   type expr
   type 'a t
 
   (** Combinatorial conditional statement for expressions. *)
   val if_ : expr -> expr t -> expr t -> expr t
-end
-
-(** API for while loops *)
-module type While = sig
-  type expr
-  type 'a t
 
   (** [while_ cond body] executes the [body] until [cond]'s value resolves to false. *)
   val while_ : expr -> unit t -> unit t
@@ -106,8 +100,7 @@ module type Instructions = sig
 
   module type Ref = Ref
   module type Join = Join
-  module type Conditional = Conditional
-  module type While = While
+  module type Control_flow = Control_flow
   module type Debugging = Debugging
 
   module Make(Expression : Expression) : sig
@@ -127,10 +120,9 @@ module type Instructions = sig
     module type Variable    = Variable with type expr := Expression.t
 
     (** Base line module types to build minimal sequential logic in hardware. *)
-    module type Ref         = Ref         with type expr := expr and type 'a t := 'a t
-    module type Join        = Join        with type 'a t := 'a t
-    module type Conditional = Conditional with type expr := expr and type 'a t := 'a t
-    module type While       = While       with type expr := expr and type 'a t := 'a t
+    module type Ref          = Ref          with type expr := expr and type 'a t := 'a t
+    module type Join         = Join         with                       type 'a t := 'a t
+    module type Control_flow = Control_flow with type expr := expr and type 'a t := 'a t
 
     (** Modules that do not have semantical meaning in hardware, but useful to have around. *)
     module type Debugging   = Debugging   with type 'a t := 'a t
@@ -139,6 +131,7 @@ module type Instructions = sig
       type 'a instruction +=
         | New_ref : Expression.t                -> Variable.t   instruction
         | Set_ref : (Variable.t * Expression.t) -> unit         instruction
+
       include Ref
     end
 
@@ -149,29 +142,23 @@ module type Instructions = sig
       include Join
     end
 
-    module Conditional() : sig
+    module Control_flow() : sig
       type if_ =
         { cond  : expr
         ; then_ : expr t
         ; else_ : expr t
         }
 
-      type 'a instruction += 
-        | If : if_ -> expr instruction
-
-      include Conditional (** @inline *)
-    end
-
-    module While() : sig
       type while_ =
         { cond : expr
         ; body : unit t
         }
 
       type 'a instruction += 
+        | If : if_ -> expr instruction
         | While : while_ -> unit instruction
 
-      include While
+      include Control_flow
     end
 
     (* TODO: Can the debugging instructions be represented an instruction rather than just an arbitrary

@@ -33,8 +33,7 @@ module Make(Expression : Expression) = struct
   module type Variable = Variable with type expr := Expression.t
   module type Ref  = Ref with type expr := expr and type 'a t := 'a t
   module type Join = Join with type 'a t := 'a t
-  module type Conditional = Conditional with type expr := expr and type 'a t := 'a t
-  module type While       = While       with type expr := expr and type 'a t := 'a t
+  module type Control_flow = Control_flow with type expr := expr and type 'a t := 'a t
   module type Debugging   = Debugging   with type 'a t := 'a t
 
   module Ref(Variable : Variable) = struct
@@ -82,27 +81,23 @@ module Make(Expression : Expression) = struct
     let par3  prog1 prog2 prog3 = Then (Join [ prog1; prog2; prog3 ], (fun _result -> return ()))
   end
 
-  module Conditional() = struct
+  module Control_flow() = struct
     type if_ =
         { cond  : expr
         ; then_ : expr t
         ; else_ : expr t
         }
 
-    type 'a instruction += 
-      | If : if_ -> expr instruction
-
-    let if_ cond then_ else_ = Then (If { cond; then_; else_ }, return)
-  end
-
-  module While() = struct
     type while_ =
       { cond : expr
       ; body : unit t
       }
 
     type 'a instruction += 
+      | If : if_ -> expr instruction
       | While : while_ -> unit instruction
+
+    let if_ cond then_ else_ = Then (If { cond; then_; else_ }, return)
 
     let while_ cond body = Then (While { cond; body }, return )
   end

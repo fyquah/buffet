@@ -24,8 +24,7 @@ end
 
 include Instructions.Make(Expression)
 include Ref(Variable)
-include While()
-include Conditional()
+include Control_flow()
 include Join()
 include Debugging_ignore()
 

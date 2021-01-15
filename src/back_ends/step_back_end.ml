@@ -25,8 +25,7 @@ include Ref(struct
 
     let get_ref (t : t) = Expression.reference t
   end)
-include While()
-include Conditional()
+include Control_flow()
 include Join()
 include Debugging_stdout()
 

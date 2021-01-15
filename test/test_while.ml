@@ -11,10 +11,9 @@ module type Api = sig
   module Expression : Expression
 
   include Base
-  include Ref   with type expr := Expression.t and type 'a t := 'a t
-  include While with type expr := Expression.t and type 'a t := 'a t
-  include Conditional with type expr := Expression.t and type 'a t := 'a t
-  include Join with                               type 'a t := 'a t
+  include Ref          with type expr := Expression.t and type 'a t := 'a t
+  include Control_flow with type expr := Expression.t and type 'a t := 'a t
+  include Join         with                               type 'a t := 'a t
 
   val debugf : ('r, Out_channel.t, unit, unit t) format4 -> 'r
 end
