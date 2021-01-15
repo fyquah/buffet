@@ -15,6 +15,8 @@ module type Api = sig
   include While with type expr := Expression.t and type 'a t := 'a t
   include Conditional with type expr := Expression.t and type 'a t := 'a t
   include Join with                               type 'a t := 'a t
+
+  val debugf : ('r, Out_channel.t, unit, unit t) format4 -> 'r
 end
 
 module Program(Api : Api) = struct
@@ -49,14 +51,14 @@ module Program(Api : Api) = struct
     ) @@ (
       let* () =
         while_ E.(!n >:. 2) (
-          let+ () =
+          let* () =
             par [
               set_ref f0    (!f1)
             ; set_ref f1    E.(!f0 +: !f1)
             ; set_ref n     E.(get_ref n -:. 1)
             ]
           in
-          printf "n = %a, f0 = %a, f1 = %a\n\n"
+          debugf "n = %a, f0 = %a, f1 = %a\n\n"
             Expression.pp (!n)
             Expression.pp (!f0)
             Expression.pp (!f1)
@@ -119,23 +121,11 @@ let%expect_test "test recipe back end" =
   factorial 6;
   [%expect {| 720 |}];
   fibonacci 1;
-  [%expect {|
-    n = ?, f0 = ?, f1 = ?
-
-    1 |}];
+  [%expect {| 1 |}];
   fibonacci 2;
-  [%expect {|
-    n = ?, f0 = ?, f1 = ?
-
-    1 |}];
+  [%expect {| 1 |}];
   fibonacci 3;
-  [%expect {|
-    n = ?, f0 = ?, f1 = ?
-
-    2 |}];
+  [%expect {| 2 |}];
   fibonacci 7;
-  [%expect {|
-    n = ?, f0 = ?, f1 = ?
-
-    13 |}]
+  [%expect {| 13 |}]
 ;;

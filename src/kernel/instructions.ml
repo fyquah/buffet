@@ -35,6 +35,7 @@ module Make(Expression : Expression) = struct
   module type Join = Join with type 'a t := 'a t
   module type Conditional = Conditional with type expr := expr and type 'a t := 'a t
   module type While       = While       with type expr := expr and type 'a t := 'a t
+  module type Debugging   = Debugging   with type 'a t := 'a t
 
   module Ref(Variable : Variable) = struct
     type variable = Variable.t
@@ -104,5 +105,13 @@ module Make(Expression : Expression) = struct
       | While : while_ -> unit instruction
 
     let while_ cond body = Then (While { cond; body }, return )
+  end
+
+  module Debugging_ignore() = struct
+    let debugf fmt = Caml.Printf.ikfprintf (fun _ -> return ()) Stdio.stdout fmt
+  end
+
+  module Debugging_stdout() = struct
+    let debugf fmt = Printf.kfprintf (fun _ -> return ()) Stdio.stdout fmt
   end
 end

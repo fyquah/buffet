@@ -27,6 +27,7 @@ include Ref(Variable)
 include While()
 include Conditional()
 include Join()
+include Debugging_ignore()
 
 module Env = struct
   type var =
@@ -129,6 +130,8 @@ let rec compile : 'a . Env.t -> 'a t -> Signal.t -> 'a compile_results =
     | Join progs -> compile_join env progs k start
 
     | If if_ -> compile_if env if_ k ~start
+
+    (* | Debugf _fmt -> compile env (k ()) start *)
 
     | _ -> raise_s [%message "Incomplete implementation, this should not have happened!"]
     end

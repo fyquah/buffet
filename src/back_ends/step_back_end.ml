@@ -28,6 +28,7 @@ include Ref(struct
 include While()
 include Conditional()
 include Join()
+include Debugging_stdout()
 
 module Executor = struct
   module Component = Digital_components.Component
