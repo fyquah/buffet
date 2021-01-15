@@ -39,16 +39,9 @@ module Make(Expression : Expression) = struct
   module Ref(Variable : Variable) = struct
     type variable = Variable.t
 
-    (* Confusingly, a [Get_ref] instruction is explicitly exlucded. This makes writing
-     * things like
-     *
-     * {[ while_ (Variable.value a) (
-           body
-         )
-         ]}
-
-       much more nicer, rather than having to bind the value to a temporary ocaml binding
-     *)
+    (* See documentation for the [Ref] module type for information on why [Get_ref]
+     * is not included as an instruction.
+     * *)
     type 'a instruction +=
       | New_ref : Expression.t                -> Variable.t   instruction
       | Set_ref : (Variable.t * Expression.t) -> unit         instruction
@@ -83,10 +76,10 @@ module Make(Expression : Expression) = struct
 
   module Control_flow() = struct
     type if_ =
-        { cond  : expr
-        ; then_ : expr t
-        ; else_ : expr t
-        }
+      { cond  : expr
+      ; then_ : expr t
+      ; else_ : expr t
+      }
 
     type while_ =
       { cond : expr
