@@ -87,12 +87,25 @@ module Make(Expression : Expression) = struct
       }
 
     type 'a instruction += 
-      | If : if_ -> expr instruction
+      | If    : if_ -> expr instruction
       | While : while_ -> unit instruction
+      | Pass  : unit instruction
 
     let if_ cond then_ else_ = Then (If { cond; then_; else_ }, return)
 
     let while_ cond body = Then (While { cond; body }, return )
+
+    let pass = Then (Pass, return)
+
+    let rec pass_n n =
+      if n < 0 then (
+        raise_s [%message "argument to [pass_n] must be a non-negative integer"]
+      ) else if n = 0 then (
+        return ()
+      ) else (
+        Then (Pass, (fun () -> pass_n (n - 1)))
+      )
+    ;;
   end
 
   module Debugging_ignore() = struct

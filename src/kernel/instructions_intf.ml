@@ -78,6 +78,14 @@ module type Control_flow = sig
 
   (** [while_ cond body] executes the [body] until [cond]'s value resolves to false. *)
   val while_ : expr -> unit t -> unit t
+
+  (** Skip one clock cycle. *)
+  val pass : unit t
+
+  (** Skip [n] clock cycles. [n] must be a non-negative integer. [pass_n 0] is essentially
+      a no-op.
+  *)
+  val pass_n : int -> unit t
 end
 
 (** API for debugging statements *)
@@ -157,6 +165,7 @@ module type Instructions = sig
       type 'a instruction += 
         | If : if_ -> expr instruction
         | While : while_ -> unit instruction
+        | Pass : unit instruction
 
       include Control_flow
     end

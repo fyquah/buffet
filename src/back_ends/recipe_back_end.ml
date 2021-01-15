@@ -126,6 +126,8 @@ let rec compile : 'a . Env.t -> 'a t -> Signal.t -> 'a compile_results =
         (k ())
         E.(~:cond &: ready)
 
+    | Pass -> compile env (k ()) (Env.delay env start)
+
     | Join progs -> compile_join env progs k start
 
     | If if_ -> compile_if env if_ k ~start
