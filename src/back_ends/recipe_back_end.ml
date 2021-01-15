@@ -5,7 +5,7 @@ open Buffet_kernel
 module Expression = struct
   include Hardcaml.Signal
             
-  let pp ppf (_ : t) = Format.fprintf ppf "?"
+  let pp ppf (_ : t) = fprintf ppf "?"
 end
 module E = Expression
 

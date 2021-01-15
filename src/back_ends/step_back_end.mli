@@ -11,7 +11,7 @@ module Expression : sig
 
   val evaluate : t -> Bits.t
 
-  val pp : Format.formatter -> t -> unit
+  val pp : out_channel -> t -> unit
 end
 
 include Base

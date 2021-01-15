@@ -56,7 +56,7 @@ module Program(Api : Api) = struct
             ; set_ref n     E.(get_ref n -:. 1)
             ]
           in
-          Format.printf "n = %a, f0 = %a, f1 = %a\n\n"
+          printf "n = %a, f0 = %a, f1 = %a\n\n"
             Expression.pp (!n)
             Expression.pp (!f0)
             Expression.pp (!f1)
@@ -86,7 +86,10 @@ let%expect_test "test step monad" =
   fibonacci 2;
   [%expect {| 1 |}];
   fibonacci 3;
-  [%expect {| 2n = 8'u2, f0 = 32'u1, f1 = 32'u2 |}];
+  [%expect {|
+    n = 8'u2, f0 = 32'u1, f1 = 32'u2
+
+    2 |}];
   fibonacci 7;
   [%expect {|
     n = 8'u6, f0 = 32'u1, f1 = 32'u2
@@ -117,18 +120,22 @@ let%expect_test "test recipe back end" =
   [%expect {| 720 |}];
   fibonacci 1;
   [%expect {|
-    1
-    n = ?, f0 = ?, f1 = ? |}];
+    n = ?, f0 = ?, f1 = ?
+
+    1 |}];
   fibonacci 2;
   [%expect {|
-    1
-    n = ?, f0 = ?, f1 = ? |}];
+    n = ?, f0 = ?, f1 = ?
+
+    1 |}];
   fibonacci 3;
   [%expect {|
-    2
-    n = ?, f0 = ?, f1 = ? |}];
+    n = ?, f0 = ?, f1 = ?
+
+    2 |}];
   fibonacci 7;
   [%expect {|
-    13
-    n = ?, f0 = ?, f1 = ? |}]
+    n = ?, f0 = ?, f1 = ?
+
+    13 |}]
 ;;

@@ -12,7 +12,7 @@ open Instructions
 module Expression : sig
   include module type of Signal
 
-  val pp : Format.formatter -> t -> unit
+  val pp : out_channel -> t -> unit
 end
 
 include Base

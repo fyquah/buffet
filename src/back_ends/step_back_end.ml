@@ -13,7 +13,7 @@ module Expression = struct
 
   let pp ppf a =
     let w = width a in
-    Format.fprintf ppf "%d'u%d" w (Bits.to_int (evaluate a))
+    Stdio.Out_channel.fprintf ppf "%d'u%d" w (Bits.to_int (evaluate a))
   ;;
 end
 

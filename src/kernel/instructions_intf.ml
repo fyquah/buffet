@@ -20,7 +20,7 @@ module type Expression = sig
 
   include Hardcaml.Comb.S with type t := t
 
-  val pp : Format.formatter -> t -> unit
+  val pp : Stdlib.out_channel -> t -> unit
 end
 
 module type Ref = sig
