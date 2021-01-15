@@ -19,7 +19,7 @@ module Make(Expression : Expression) = struct
       match t with
       | Return a -> f a
       | Then (instr, k) ->
-        Then (instr, (fun a -> bind (k a) ~f))
+        Then (instr, (fun a -> bind (k a [@noinline]) ~f))
 
     let map = `Define_using_bind
   end
