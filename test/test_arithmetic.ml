@@ -1,6 +1,6 @@
 open Core_kernel
 open Hardcaml
-open Ocaml_edsl_kernel
+open Buffet_kernel
 
 module type Api = sig
   open Instructions
@@ -24,7 +24,7 @@ module Make(Api : Api) = struct
 end
 
 let%expect_test "test arithmetic" =
-  let open Ocaml_edsl_back_ends in
+  let open Buffet_back_ends in
   let open Make(Step_back_end) in
   Stdio.printf "%d"
     (Bits.to_int (Step_back_end.Expression.evaluate

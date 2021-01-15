@@ -1,11 +1,11 @@
 (library
- (name ocaml_edsl_back_ends)
+ (name buffet_back_ends)
  (libraries
   core_kernel
 
   hardcaml
   hardcaml_step_testbench
-  ocaml_edsl_kernel)
+  buffet_kernel)
 
   (preprocess (pps ppx_jane ppx_deriving_hardcaml))
   )

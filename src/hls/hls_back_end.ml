@@ -1,6 +1,6 @@
 open Core_kernel
 open Hardcaml
-open Ocaml_edsl_kernel
+open Buffet_kernel
 
 module Middle_end = Hls_middle_end
 module State_id = Middle_end.State_id

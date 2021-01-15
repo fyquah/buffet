@@ -1,5 +1,5 @@
 open Hardcaml
-open Ocaml_edsl_kernel
+open Buffet_kernel
 open Instructions
 
 module Step_monad := Digital_components.Step_monad

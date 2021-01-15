@@ -1,5 +1,5 @@
 (library
- (name ocaml_edsl_kernel)
+ (name buffet_kernel)
  (libraries
   core_kernel
 

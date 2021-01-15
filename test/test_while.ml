@@ -1,7 +1,7 @@
 open Core_kernel
 open Hardcaml
-open Ocaml_edsl_kernel
-open Ocaml_edsl_back_ends
+open Buffet_kernel
+open Buffet_back_ends
 
 module Recipe_back_end = Utils.Recipe_back_end
 

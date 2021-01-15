@@ -5,7 +5,7 @@ module Expression = Hls_front_end.Expression
 module E = Expression
 module Var_id = Hls_front_end.Var_id
 
-module State_id = Ocaml_edsl_kernel.Identifier.Make(struct
+module State_id = Buffet_kernel.Identifier.Make(struct
     let name = "state_id"
   end)
 

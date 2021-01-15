@@ -1,6 +1,6 @@
 open Core_kernel
 open Hardcaml
-open Ocaml_edsl_kernel
+open Buffet_kernel
 
 module Expression = struct
   include Dynamic_expression.Make(Bits)(struct

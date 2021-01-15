@@ -6,7 +6,7 @@
  *)
 
 open Hardcaml
-open Ocaml_edsl_kernel
+open Buffet_kernel
 open Instructions
 
 module Expression : sig

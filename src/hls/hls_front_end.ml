@@ -1,5 +1,5 @@
 open Core_kernel
-open Ocaml_edsl_kernel
+open Buffet_kernel
 
 module Var_id : sig
   include Comparable.S
