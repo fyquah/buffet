@@ -20,12 +20,14 @@ end
 module Step_monad = Digital_components.Step_monad
 
 include Instructions.Make(Expression)
-include Ref(struct type t = Bits.t ref end)
+include Ref(struct
+    type t = Bits.t ref
+
+    let get_ref (t : t) = Expression.reference t
+  end)
 include While()
 include Conditional()
 include Join()
-
-let get_ref r = Expression.reference r
 
 module Executor = struct
   module Component = Digital_components.Component

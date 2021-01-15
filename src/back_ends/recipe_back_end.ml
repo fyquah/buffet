@@ -19,7 +19,7 @@ module Variable = struct
     ; value  : Signal.t
     }
 
-  let value t = t.value
+  let get_ref t = t.value
 end
 
 include Instructions.Make(Expression)
@@ -27,8 +27,6 @@ include Ref(Variable)
 include While()
 include Conditional()
 include Join()
-
-let get_ref = Variable.value
 
 module Env = struct
   type var =
