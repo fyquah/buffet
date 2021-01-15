@@ -27,7 +27,7 @@ module Program(Api : Api) = struct
     let* acc = new_ref (E.of_int ~width:32 1) in
     let* () =
       while_ E.(get_ref n <>:. 0) (
-        let* () = set_ref acc E.(get_ref acc *: uresize (get_ref n) 32) in
+        let* () = set_ref acc E.((get_ref acc *: uresize (get_ref n) 32).:[31, 0]) in
         let* () = set_ref n   E.(get_ref n -:. 1) in
         return ()
       )
@@ -97,4 +97,35 @@ let%expect_test "test step monad" =
     n = 8'u2, f0 = 32'u8, f1 = 32'u13
 
     13 |}];
+;;
+
+let%expect_test "test recipe back end" =
+  let open Program(Recipe_back_end) in
+  let test ~f n =
+    let compiled = Utils.compile (f n) in
+    let result = Utils.run compiled in
+    Stdio.printf "%d\n" (Bits.to_int result);
+  in
+  let factorial = test ~f:factorial in
+  let fibonacci = test ~f:fibonacci in
+  factorial 1;
+  [%expect {| 1 |}];
+  factorial 6;
+  [%expect {| 720 |}];
+  fibonacci 1;
+  [%expect {|
+    1
+    n = ?, f0 = ?, f1 = ? |}];
+  fibonacci 2;
+  [%expect {|
+    1
+    n = ?, f0 = ?, f1 = ? |}];
+  fibonacci 3;
+  [%expect {|
+    2
+    n = ?, f0 = ?, f1 = ? |}];
+  fibonacci 7;
+  [%expect {|
+    13
+    n = ?, f0 = ?, f1 = ? |}]
 ;;

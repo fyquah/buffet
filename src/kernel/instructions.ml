@@ -39,7 +39,7 @@ module type Conditional = sig
   type expr
   type 'a t
 
-  val if_ : expr -> 'a t -> 'a t -> 'a t
+  val if_ : expr -> expr t -> expr t -> expr t
 end
 
 module type While = sig
@@ -112,17 +112,16 @@ module Make(Expression : Expression) = struct
   end
 
   module Conditional() = struct
-    type 'a if_ =
+    type if_ =
         { cond  : expr
-        ; then_ : 'a t
-        ; else_ : 'a t
+        ; then_ : expr t
+        ; else_ : expr t
         }
 
     type 'a instruction += 
-      | If : 'a if_ -> 'a instruction
+      | If : if_ -> expr instruction
 
     let if_ cond then_ else_ = Then (If { cond; then_; else_ }, return)
-    let when_ cond then_     = Then (If { cond; then_; else_ = return () }, return)
   end
 
   module While() = struct

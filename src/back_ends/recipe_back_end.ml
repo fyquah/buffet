@@ -2,7 +2,12 @@ open Core_kernel
 open Hardcaml
 open Ocaml_edsl_kernel
 
-module Expression = Hardcaml.Signal
+module Expression = struct
+  include Hardcaml.Signal
+            
+  let pp ppf (_ : t) = Format.fprintf ppf "?"
+end
+module E = Expression
 
 module Var_id = Identifier.Make(struct
     let name = "var_id"
@@ -19,6 +24,9 @@ end
 
 include Instructions.Make(Expression)
 include Ref(Variable)
+include While()
+include Conditional()
+include Join()
 
 let get_ref = Variable.value
 
@@ -57,6 +65,13 @@ module Env = struct
     Signal.reg t.reg_spec ~enable:Signal.vdd a
   ;;
 
+  let set_reset (env : t) ~set ~reset =
+    let out = Signal.wire 1 in
+    let q = delay env E.(out &: (~:reset)) in
+    E.(out <== (set |: q));
+    out
+  ;;
+
   let set_var (t : t) ~(var : Variable.t) ~start ~value =
     let vars =
       Map.update t.vars var.var_id ~f:(function 
@@ -75,7 +90,8 @@ type 'a compile_results =
   ; return : 'a
   }
 
-let rec compile (env : Env.t) (program : _ t) (start : Signal.t) =
+let rec compile : 'a . Env.t -> 'a t -> Signal.t -> 'a compile_results =
+  fun env program start ->
   match program with
   | Return a ->
     { env
@@ -103,8 +119,49 @@ let rec compile (env : Env.t) (program : _ t) (start : Signal.t) =
         (k ())
         (Env.delay env start)
 
+    | While { cond; body } ->
+      let ready = Signal.wire 1 in
+      let result = compile env body E.(cond &: ready) in
+      E.(ready <== (start |: result.done_));
+      compile
+        result.env
+        (k ())
+        E.(~:cond &: ready)
+
+    | Join progs -> compile_join env progs k start
+
+    | If if_ -> compile_if env if_ k ~start
+
     | _ -> raise_s [%message "Incomplete implementation, this should not have happened!"]
     end
+
+and compile_join : 'a 'b. Env.t -> 'a t list -> ('a list -> 'b t) -> Signal.t -> 'b compile_results =
+  fun env_init progs k start ->
+  let env, results =
+    List.fold_map progs ~init:env_init ~f:(fun env prog ->
+        let result = compile env prog start in
+        result.env, result)
+  in
+  let fin = Signal.wire 1 in
+  Signal.(
+    fin <== (
+      List.map results ~f:(fun result ->
+          Env.set_reset env ~set:result.done_ ~reset:fin)
+      |> Signal.tree ~arity:2 ~f:(reduce ~f:E.(&:)))
+  );
+  compile
+    env
+    (k (List.map results ~f:(fun r -> r.return)))
+    fin
+
+and compile_if : 'b. Env.t -> if_ -> (expr -> 'b t) -> start: Signal.t -> 'b compile_results =
+  fun env0 (if_ : if_) k ~start ->
+  let then_ = compile env0       if_.then_ E.(    if_.cond &: start) in
+  let else_ = compile then_.env  if_.else_ E.(~:(if_.cond) &: start) in
+  compile
+    else_.env
+    (k (E.mux2 then_.done_ then_.return else_.return))
+    E.(then_.done_ |: else_.done_)
 ;;
 
 let compile reg_spec (program : _ t) start =
