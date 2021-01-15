@@ -32,7 +32,12 @@ module type Join = sig
   type 'a t
 
   val join_ : 'a t list -> 'a list t
+  val join2 : 'a t -> 'b t         -> ('a * 'b) t
+  val join3 : 'a t -> 'b t -> 'c t -> ('a * 'b * 'c) t
+
   val par   : unit t list -> unit t
+  val par2  : unit t -> unit t           -> unit t
+  val par3  : unit t -> unit t -> unit t -> unit t
 end
 
 module type Conditional = sig
@@ -108,7 +113,21 @@ module Make(Expression : Expression) = struct
 
     let join_ progs = Then (Join progs, return)
 
+    let t1 x = x >>| fun p -> `P1 p
+    let t2 x = x >>| fun p -> `P2 p
+    let t3 x = x >>| fun p -> `P3 p
+
+    let join2 p1 p2 = Then (Join [ t1 p1; t2 p2 ], (function
+        | [ `P1 p1; `P2 p2 ] -> return (p1, p2)
+        | _ -> assert false))
+
+    let join3 p1 p2 p3 = Then (Join [ t1 p1; t2 p2; t3 p3 ], function
+        | [ `P1 p1; `P2 p2; `P3 p3 ] -> return (p1, p2, p3)
+        | _ -> assert false)
+
     let par  (progs : unit t list) = Then (Join progs, (fun _result -> return ()))
+    let par2  prog1 prog2       = Then (Join [ prog1; prog2 ], (fun _result -> return ()))
+    let par3  prog1 prog2 prog3 = Then (Join [ prog1; prog2; prog3 ], (fun _result -> return ()))
   end
 
   module Conditional() = struct

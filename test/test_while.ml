@@ -22,20 +22,23 @@ module Program(Api : Api) = struct
 
   module E = Api.Expression
 
+  let (!) = get_ref
+
   let factorial n =
-    let* n = new_ref (E.of_int ~width:8 n) in
-    let* acc = new_ref (E.of_int ~width:32 1) in
+    let* (n, acc) =
+      join2
+        (new_ref (E.of_int ~width:8 n))
+        (new_ref (E.of_int ~width:32 1))
+    in
     let* () =
-      while_ E.(get_ref n <>:. 0) (
-        let* () = set_ref acc E.((get_ref acc *: uresize (get_ref n) 32).:[31, 0]) in
-        let* () = set_ref n   E.(get_ref n -:. 1) in
+      while_ E.(!n <>:. 0) (
+        let* () = set_ref acc E.((!acc *: uresize !n 32).:[31, 0]) in
+        let* () = set_ref n   E.(!n -:. 1) in
         return ()
       )
     in
-    return (get_ref acc)
+    return !acc
   ;;
-
-  let (!) = get_ref
 
   let fibonacci n =
     let* n   = new_ref (E.of_int ~width:8 n) in
