@@ -1,4 +1,5 @@
 open Core_kernel
+open Instructions_aux
 
 include Instructions_intf
 
@@ -34,6 +35,7 @@ module Make(Expression : Expression) = struct
   module type Ref  = Ref with type expr := expr and type 'a t := 'a t
   module type Join = Join with type 'a t := 'a t
   module type Control_flow = Control_flow with type expr := expr and type 'a t := 'a t
+  module type Channels     = Channels     with type expr := expr and type 'a t := 'a t
   module type Debugging   = Debugging   with type 'a t := 'a t
 
   module Ref(Variable : Variable) = struct
@@ -107,6 +109,70 @@ module Make(Expression : Expression) = struct
       )
     ;;
   end
+
+  module Channels (Channel : T) = struct
+    module Input_channel0 = struct
+      type 'a t =
+        { to_expression : 'a -> Expression.t
+        ; chan          : Channel.t
+        }
+    end
+
+    module Output_channel0 = struct
+      type 'a t =
+        { of_expression : Expression.t -> 'a
+        ; chan          : Channel.t
+        }
+    end
+
+    type 'a pipe_ =
+      { pipe_args : Pipe_args.t
+      ; to_expression : 'a -> Expression.t
+      ; of_expression : Expression.t -> 'a
+      }
+
+    type 'a instruction +=
+      | Pipe           : 'a pipe_                    -> ('a Input_channel0.t * 'a Output_channel0.t) instruction
+      | Read_channel   : 'a Input_channel0.t         -> 'a instruction
+      | Write_channel  : ('a Output_channel0.t * 'a) -> unit instruction
+
+    module Input_channel = struct
+      include Input_channel0
+
+      let of_raw chan = { chan; to_expression = Fn.id }
+      let read chan = Then (Read_channel chan, return)
+    end
+
+    module Output_channel = struct
+      include Output_channel0
+
+      let of_raw chan = { chan; of_expression = Fn.id }
+      let write chan value = Then (Write_channel (chan, value), return)
+    end
+    
+    let pipe pipe_args = Then (Pipe { pipe_args; to_expression = Fn.id; of_expression = Fn.id }, return)
+
+    module Pipe(M : Hardcaml.Interface.S) = struct
+      let indices_and_width =
+        (M.scan M.port_widths ~init:0 ~f:(fun acc w -> (acc + w, (acc + w, w))))
+      ;;
+
+      let to_expression (expr : Expression.t M.t) =
+        M.iter2 expr M.port_widths ~f:(fun e w ->
+            assert (Expression.width e = w));
+        M.to_list expr
+        |> Expression.concat_lsb
+      ;;
+
+      let of_expression expr =
+        M.map indices_and_width ~f:(fun (i, w) ->
+            Expression.select expr (i + w - 1) i)
+      ;;
+
+      let pipe pipe_args = Then (Pipe { pipe_args; to_expression; of_expression }, return)
+    end
+  end
+
 
   module Debugging_ignore() = struct
     let debugf fmt = Caml.Printf.ikfprintf (fun _ -> return ()) Stdio.stdout fmt

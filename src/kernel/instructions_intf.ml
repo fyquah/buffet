@@ -1,4 +1,5 @@
 open Core_kernel
+open Instructions_aux
 
 module type Base = sig
   include Monad.S
@@ -88,6 +89,32 @@ module type Control_flow = sig
   val pass_n : int -> unit t
 end
 
+(** API for doing IO with external components outside the "buffet DSL" *)
+module type Channels = sig
+  type 'a t
+  type expr
+
+  module Input_channel : sig
+    type 'a m := 'a t
+    type 'a t
+
+    val write : 'a t -> 'a -> unit m
+  end
+
+  module Output_channel : sig
+    type 'a m := 'a t
+    type 'a t
+
+    val read  : 'a -> 'a m
+  end
+
+  val pipe : Pipe_args.t -> expr Input_channel.t * expr Output_channel.t
+
+  module Pipe(M : Hardcaml.Interface.S) : sig
+    val pipe : Pipe_args.t -> expr M.t Input_channel.t * expr M.t Output_channel.t
+  end
+end
+
 (** API for debugging statements *)
 module type Debugging = sig
   type 'a t
@@ -131,6 +158,7 @@ module type Instructions = sig
     module type Ref          = Ref          with type expr := expr and type 'a t := 'a t
     module type Join         = Join         with                       type 'a t := 'a t
     module type Control_flow = Control_flow with type expr := expr and type 'a t := 'a t
+    module type Channels     = Channels     with type expr := expr and type 'a t := 'a t
 
     (** Modules that do not have semantical meaning in hardware, but useful to have around. *)
     module type Debugging   = Debugging   with type 'a t := 'a t
@@ -170,8 +198,49 @@ module type Instructions = sig
       include Control_flow
     end
 
-    (* TODO: Can the debugging instructions be represented an instruction rather than just an arbitrary
-     * API call?
+    module Channels (Channel : T) : sig
+      type 'a m := 'a t
+
+      module Input_channel : sig
+        type 'a t =
+          { to_expression : 'a -> Expression.t
+          ; chan          : Channel.t
+          }
+
+        val of_raw : Channel.t -> Expression.t t
+        val read   : 'a t -> 'a m
+      end
+
+      module Output_channel : sig
+        type 'a t =
+          { of_expression : Expression.t -> 'a
+          ; chan          : Channel.t
+          }
+
+        val of_raw : Channel.t -> Expression.t t
+        val write  : 'a t -> 'a -> unit m
+      end
+
+      type 'a pipe_ =
+        { pipe_args : Pipe_args.t
+        ; to_expression : 'a -> Expression.t
+        ; of_expression : Expression.t -> 'a
+        }
+
+      type 'a instruction +=
+        | Pipe           : 'a pipe_                   -> ('a Input_channel.t * 'a Output_channel.t) instruction
+        | Read_channel   : 'a Input_channel.t         -> 'a instruction
+        | Write_channel  : ('a Output_channel.t * 'a) -> unit instruction
+
+      val pipe : Pipe_args.t -> (expr Input_channel.t * expr Output_channel.t) t
+
+      module Pipe(M : Hardcaml.Interface.S) : sig
+        val pipe : Pipe_args.t -> (expr M.t Input_channel.t * expr M.t Output_channel.t) t
+      end
+    end
+
+    (* TODO: Can the debugging instructions be represented an instruction rather than
+     * just an arbitrary API call?
      *)
     module Debugging_stdout() : Debugging
     module Debugging_ignore() : Debugging
