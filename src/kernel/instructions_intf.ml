@@ -223,6 +223,7 @@ module type Instructions = sig
 
       type 'a pipe_ =
         { pipe_args : Pipe_args.t
+        ; width : int
         ; to_expression : 'a -> Expression.t
         ; of_expression : Expression.t -> 'a
         }
@@ -232,7 +233,7 @@ module type Instructions = sig
         | Read_channel   : 'a Input_channel.t         -> 'a instruction
         | Write_channel  : ('a Output_channel.t * 'a) -> unit instruction
 
-      val pipe : Pipe_args.t -> (expr Input_channel.t * expr Output_channel.t) t
+      val pipe : int -> Pipe_args.t -> (expr Input_channel.t * expr Output_channel.t) t
 
       module Pipe(M : Hardcaml.Interface.S) : sig
         val pipe : Pipe_args.t -> (expr M.t Input_channel.t * expr M.t Output_channel.t) t

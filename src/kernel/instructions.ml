@@ -127,6 +127,7 @@ module Make(Expression : Expression) = struct
 
     type 'a pipe_ =
       { pipe_args : Pipe_args.t
+      ; width : int
       ; to_expression : 'a -> Expression.t
       ; of_expression : Expression.t -> 'a
       }
@@ -150,12 +151,14 @@ module Make(Expression : Expression) = struct
       let write chan value = Then (Write_channel (chan, value), return)
     end
     
-    let pipe pipe_args = Then (Pipe { pipe_args; to_expression = Fn.id; of_expression = Fn.id }, return)
+    let pipe width pipe_args = Then (Pipe { pipe_args; width; to_expression = Fn.id; of_expression = Fn.id }, return)
 
     module Pipe(M : Hardcaml.Interface.S) = struct
       let indices_and_width =
         (M.scan M.port_widths ~init:0 ~f:(fun acc w -> (acc + w, (acc + w, w))))
       ;;
+
+      let total_width = M.fold ~init:0 ~f:(+) M.port_widths
 
       let to_expression (expr : Expression.t M.t) =
         M.iter2 expr M.port_widths ~f:(fun e w ->
@@ -169,7 +172,14 @@ module Make(Expression : Expression) = struct
             Expression.select expr (i + w - 1) i)
       ;;
 
-      let pipe pipe_args = Then (Pipe { pipe_args; to_expression; of_expression }, return)
+      let pipe pipe_args =
+        Then (Pipe { pipe_args
+                   ; width = total_width
+                   ; to_expression
+                   ; of_expression
+                   },
+              return)
+      ;;
     end
   end
 

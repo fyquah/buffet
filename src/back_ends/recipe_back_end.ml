@@ -25,8 +25,26 @@ end
 module Channel = struct
   type t =
     { with_valid : Signal.t With_valid.t
-    ; ack  : [ `Not_required | `Required of Signal.t ]
+    ; (* CR-soon fquah: Implement channels with acks. *)
+      ack  : [ `Not_required ]
     }
+
+  let write (t : t) ~valid ~value =
+    match t.ack with
+    | `Not_required ->
+      let open Signal in
+      t.with_valid.valid <== valid;
+      t.with_valid.value <== value;
+  ;;
+
+  let create ~width =
+    { with_valid =
+        { valid = Signal.wire 1
+        ; value = Signal.wire width
+        }
+    ; ack = `Not_required
+    }
+  ;;
 end
 
 include Instructions.Make(Expression)
@@ -145,6 +163,20 @@ let rec compile : 'a . Env.t -> 'a t -> Signal.t -> 'a compile_results =
       let result = compile_read_channel env ic start in
       compile result.env (k result.return) result.done_
 
+    | Write_channel (oc, value) ->
+      let result = compile_write_channel env oc value start in
+      compile result.env (k result.return) result.done_
+
+    | Pipe { pipe_args; to_expression; of_expression; width }  -> 
+      (match pipe_args.handshake with
+       | `Blocking ->
+         raise_s [%message "Unimplemented"]
+       | `Fire_and_forget ->
+         let underlying = Channel.create ~width in
+         let ic = { Input_channel.  chan = underlying; of_expression } in
+         let oc = { Output_channel. chan = underlying; to_expression } in
+         compile env (k (ic, oc)) start)
+
     | _ -> raise_s [%message "Incomplete implementation, this should not have happened!"]
     end
 
@@ -190,6 +222,16 @@ and compile_read_channel : 'a . Env.t -> 'a Input_channel.t -> Expression.t -> '
     { return = channel.of_expression channel.chan.with_valid.value
     ; env    = env
     ; done_  = start_next_block
+    }
+
+and compile_write_channel : 'a . Env.t -> 'a Output_channel.t -> 'a -> Expression.t -> unit compile_results =
+  fun env channel value start ->
+  match channel.chan.ack with
+  | `Not_required ->
+    Channel.write channel.chan ~valid:start ~value:(channel.to_expression value);
+    { return = ()
+    ; env    = env
+    ; done_  = start
     }
 ;;
 
