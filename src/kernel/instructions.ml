@@ -113,14 +113,14 @@ module Make(Expression : Expression) = struct
   module Channels (Channel : T) = struct
     module Input_channel0 = struct
       type 'a t =
-        { to_expression : 'a -> Expression.t
+        { of_expression : Expression.t -> 'a
         ; chan          : Channel.t
         }
     end
 
     module Output_channel0 = struct
       type 'a t =
-        { of_expression : Expression.t -> 'a
+        { to_expression : 'a -> Expression.t
         ; chan          : Channel.t
         }
     end
@@ -139,14 +139,14 @@ module Make(Expression : Expression) = struct
     module Input_channel = struct
       include Input_channel0
 
-      let of_raw chan = { chan; to_expression = Fn.id }
+      let of_raw chan = { chan; of_expression = Fn.id }
       let read chan = Then (Read_channel chan, return)
     end
 
     module Output_channel = struct
       include Output_channel0
 
-      let of_raw chan = { chan; of_expression = Fn.id }
+      let of_raw chan = { chan; to_expression = Fn.id }
       let write chan value = Then (Write_channel (chan, value), return)
     end
     

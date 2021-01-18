@@ -203,7 +203,7 @@ module type Instructions = sig
 
       module Input_channel : sig
         type 'a t =
-          { to_expression : 'a -> Expression.t
+          { of_expression : Expression.t -> 'a
           ; chan          : Channel.t
           }
 
@@ -213,7 +213,7 @@ module type Instructions = sig
 
       module Output_channel : sig
         type 'a t =
-          { of_expression : Expression.t -> 'a
+          { to_expression : 'a -> Expression.t
           ; chan          : Channel.t
           }
 

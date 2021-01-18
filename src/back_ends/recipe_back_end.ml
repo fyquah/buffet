@@ -22,11 +22,19 @@ module Variable = struct
   let get_ref t = t.value
 end
 
+module Channel = struct
+  type t =
+    { with_valid : Signal.t With_valid.t
+    ; ack  : [ `Not_required | `Required of Signal.t ]
+    }
+end
+
 include Instructions.Make(Expression)
 include Ref(Variable)
 include Control_flow()
 include Join()
 include Debugging_ignore()
+include Channels(Channel)
 
 module Env = struct
   type var =
@@ -82,6 +90,7 @@ module Env = struct
   ;;
 end
 
+
 type 'a compile_results =
   { env : Env.t
   ; done_ : Signal.t
@@ -132,7 +141,9 @@ let rec compile : 'a . Env.t -> 'a t -> Signal.t -> 'a compile_results =
 
     | If if_ -> compile_if env if_ k ~start
 
-    (* | Debugf _fmt -> compile env (k ()) start *)
+    | Read_channel ic ->
+      let result = compile_read_channel env ic start in
+      compile result.env (k result.return) result.done_
 
     | _ -> raise_s [%message "Incomplete implementation, this should not have happened!"]
     end
@@ -164,6 +175,22 @@ and compile_if : 'b. Env.t -> if_ -> (expr -> 'b t) -> start: Signal.t -> 'b com
     else_.env
     (k (E.mux2 then_.done_ then_.return else_.return))
     E.(then_.done_ |: else_.done_)
+
+and compile_read_channel : 'a . Env.t -> 'a Input_channel.t -> Expression.t -> 'a compile_results =
+  fun env channel start ->
+  match channel.chan.ack with
+  | `Not_required ->
+    (* Block until data is available. This is written in a way that there
+     * can be multiple consumers of the data
+    *)
+    let start_next_block = Signal.wire 1 in
+    Signal.(start_next_block <==
+            ((start |: Env.set_reset env ~set:start ~reset:start_next_block)
+             &: channel.chan.with_valid.valid));
+    { return = channel.of_expression channel.chan.with_valid.value
+    ; env    = env
+    ; done_  = start_next_block
+    }
 ;;
 
 let compile reg_spec (program : _ t) start =
